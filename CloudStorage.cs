@@ -9,8 +9,8 @@ using System.IO;
 public class CloudStorage : MonoBehaviour
 {
     private MegaApiClient client;
-    private string megaUsername = "sahilushaikh6@gmail.com";
-    private string megaPassword = "Sahmain@9876";
+    private string megaUsername = "********@gmail.com";
+    private string megaPassword = "*********";
 
 
     #region UnityAPI
