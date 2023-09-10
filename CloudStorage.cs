@@ -9,40 +9,61 @@ using System.IO;
 public class CloudStorage : MonoBehaviour
 {
     private MegaApiClient client;
-    private string megaUsername = "********@gmail.com";
-    private string megaPassword = "*********";
+    private string megaUsername = "*******@gmail.com";
+    private string megaPassword = "*******";
 
 
     #region UnityAPI
     private void Start()
     {
-        Debug.Log(Application.persistentDataPath);
-        //FolderDownloadContent("https://mega.nz/folder/ynZmnLbJ#0QmW68kzBEALh3Cy-ITEFw");
-        // ListFiles();
-        //Testdf();
-        //  GetFolder("Companyname","Databasename","th.jpg");
-        //  DeleteFile("Companyname","Databasename","th.jpg");
-        // CreateFolderOnServer();
-        // Test();
-     //   GetSubFolders("Companyname");
-        GetAllFilesFromFolder("Test");
-     //   UploadFileOnFolders("Test", "C:/Users/SAHIL/Desktop/Test/Test1/1.png");
+        //  GetAllSubFolders("Companyname");
+        //  CreateFolder("Companyname","SahilFolderTest");
+        //foreach (var item in GetAllFilesFromFolder("Companyname"))
+        //{
+        //     Debug.Log(item.Key.ToString()+" " +item.Value.ToString());
+
+        //}
+        UploadFileOnFolder("Test", "C:/Users/SAHIL/Desktop/Test/Sahil.jpg");
     }
 
     #endregion
 
     #region CreateFolder
-
-    void CreateFolder(string parentFoldername , string childFoldername)
+    public bool isFolderPresent = true;
+    async void CreateFolder(string parentFoldername , string childFoldername)
     {
 
         client = new MegaApiClient();
         client.Login(megaUsername, megaPassword);
+        
         try
         {
-            IEnumerable<INode> nodes = client.GetNodes();
-            INode parentfolder = GetPaticularFolder(parentFoldername);
-            INode myFolder = client.CreateFolder(childFoldername, parentfolder);
+                IEnumerable<INode> nodes = client.GetNodes();
+                INode parentfolder = GetPaticularFolder(parentFoldername);
+                string persistentPath = Path.Combine(Application.persistentDataPath, parentFoldername, childFoldername);
+         
+            foreach (var item in GetAllSubFolders(parentFoldername))
+            {
+                if (item != childFoldername)
+                {
+                    isFolderPresent = false;
+                    Debug.Log("Folder created in Unity: ");
+                }
+                else
+                {
+                    isFolderPresent = true;
+                    Debug.Log("Folder already exists in Unity: ");
+                    return;
+
+                }
+            }
+            if (!isFolderPresent)
+            {
+                INode folder = await client.CreateFolderAsync(childFoldername, parentfolder);
+                Directory.CreateDirectory(persistentPath);
+                Debug.Log("folder Created");
+
+            }
 
         }
         catch (Exception e)
@@ -110,16 +131,19 @@ public class CloudStorage : MonoBehaviour
 
    //}
 
-    async void DeleteNode(INode node)
+    async void DeleteNode(INode node,string name)
     {
         try
         {
             client = new MegaApiClient();
             client.Login(megaUsername, megaPassword);
+            if(node.Name == name)
+            {
+                IProgress<double> progressHandler = new Progress<double>(x => Debug.Log("{0}%" + x));
 
-            IProgress<double> progressHandler = new Progress<double>(x => Debug.Log("{0}%" + x));
-
-            await client.DeleteAsync(node, true);
+                await client.DeleteAsync(node, true);
+            }
+          
         }
         catch (Exception e)
         {
@@ -166,7 +190,7 @@ public class CloudStorage : MonoBehaviour
 
         Console.WriteLine($"Downloading {node.Name}");
         IProgress<double> progressHandler = new Progress<double>(x => Debug.Log("{0}%" + x));
-        await client.DownloadFileAsync(fileLink, node.Name);
+        await client.DownloadFileAsync(fileLink, node.Name, progressHandler);
 
         client.Logout();
     }
@@ -174,26 +198,30 @@ public class CloudStorage : MonoBehaviour
     #endregion
 
     #region GetFilesOrFolder
-    void GetAllFilesFromFolder(string Foldername) // Get All the Filse From The folder
+    Dictionary<string,string> GetAllFilesFromFolder(string Foldername) // Get All the Filse From The folder
     {
         client = new MegaApiClient();
         client.Login(megaUsername, megaPassword);
         INode Folder = GetPaticularFolder(Foldername);
         IEnumerable<INode> files = client.GetNodes(Folder);
         List<INode> allFiles = files.Where(n => n.Type == NodeType.File).ToList();
-
+        Dictionary<string, string> test = new Dictionary<string, string>();
         foreach (var subDir in allFiles.Where(node => node.Type == NodeType.File))
         {
-            Debug.Log(subDir.Name + client.GetDownloadLink(subDir));
+           /* Debug.Log(subDir.Name + client.GetDownloadLink(subDir));*/
+            test.Add(subDir.Name, client.GetDownloadLink(subDir).ToString());
+
         }
-        client.Logout();
+        return test;
     }
-    void GetAllSubFolders(string parentFolder) // Get Sub Folders from root folders
+    public List<string> GetAllSubFolders(string parentFolder) // Get Sub Folders from root folders
     {
+        
         client = new MegaApiClient();
         client.Login(megaUsername, megaPassword);
         IEnumerable<INode> company = client.GetNodes();
         INode companyRoot = company.SingleOrDefault(node => node.Type == NodeType.Root);
+        List<string> subFolderNames = new List<string>();
 
         if (companyRoot != null)
         {
@@ -207,11 +235,12 @@ public class CloudStorage : MonoBehaviour
                 foreach (var subDir in subDirectories.Where(node => node.Type == NodeType.Directory))
                 {
                     Debug.Log(subDir.Name);
+                    subFolderNames.Add(subDir.Name);
                 }
             }
         }
 
-        client.Logout();
+        return subFolderNames;
     }
 
 
@@ -228,27 +257,43 @@ public class CloudStorage : MonoBehaviour
         return CompanyRef.FirstOrDefault(f => f.Name == Name);
      
     }
-  
-
-   
-    void UploadFileOnFolders(string Foldername , string FileLoaction) // Upload File in folder
-    {
-        client = new MegaApiClient();
-        client.Login(megaUsername, megaPassword);
-        INode Folder = GetPaticularFolder(Foldername);
-        INode myFile = client.UploadFile(FileLoaction, Folder);
-
-        Uri downloadLink = client.GetDownloadLink(myFile);
-        Debug.Log(downloadLink.ToString());
-        client.Logout();
-    }
-
-    //GetAllFiles Indside Folders
 
     #endregion
 
+    #region UploadFile
+    void UploadFileOnFolder(string Foldername, string FilePath) // Upload File in folder
+    {
+        client = new MegaApiClient();
+        client.Login(megaUsername, megaPassword);
+
+        INode Folder = GetPaticularFolder(Foldername);
+
+        foreach (var item in GetAllFilesFromFolder(Foldername))
+        {
+                 Debug.Log(item.Key.ToString() + " " + Path.GetFileName(FilePath));
+           
+            
+            if (item.Key.ToString() == Path.GetFileName(FilePath))
+            {
+                Debug.Log("File Already Present Delete and Upload again");
+                return;
+            }
+            else
+            {
+                 INode myFile = client.UploadFile(FilePath, Folder);
+                 Uri downloadLink = client.GetDownloadLink(myFile);
+                Debug.Log(downloadLink.ToString());
+
+            }
+
+        }
+
+        client.Logout();
+    }
+    #endregion
+
     #region Test
-    void Test()
+    void Test()// Uploading whole folder and subfolder with files
     {
        // string megaUsername = "YourMegaUsername";
        // string megaPassword = "YourMegaPassword";
@@ -256,7 +301,6 @@ public class CloudStorage : MonoBehaviour
 
         client = new MegaApiClient();
         client.Login(megaUsername, megaPassword);
-
         IEnumerable<INode> nodes = client.GetNodes();
         INode root = nodes.Single(x => x.Type == NodeType.Root);
         UploadFolder(client, localFolderPath, root);
