@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CG.Web.MegaApiClient;
@@ -8,22 +7,25 @@ using System.IO;
 
 public class CloudStorage : MonoBehaviour
 {
+    #region privateVariables
     private MegaApiClient client;
-    private string megaUsername = "*******@gmail.com";
-    private string megaPassword = "*******";
-
+    private string megaUsername = "*********@gmail.com";
+    private string megaPassword = "******@9876";
+    #endregion
 
     #region UnityAPI
     private void Start()
     {
-        //  GetAllSubFolders("Companyname");
+        //   GetAllSubFolders("Companyname");
         //  CreateFolder("Companyname","SahilFolderTest");
         //foreach (var item in GetAllFilesFromFolder("Companyname"))
         //{
         //     Debug.Log(item.Key.ToString()+" " +item.Value.ToString());
 
         //}
-        UploadFileOnFolder("Test", "C:/Users/SAHIL/Desktop/Test/Sahil.jpg");
+        //   UploadFileOnFolder("Test", "C:/Users/SAHIL/Desktop/Test/Sahil.jpg");
+      //  Renamenode("Databasename", "DBname");
+
     }
 
     #endregion
@@ -74,7 +76,6 @@ public class CloudStorage : MonoBehaviour
 
         client.Logout();
     }
-
     void ScreateDefaultFolder( string gamil)
     {
         client = new MegaApiClient();
@@ -100,6 +101,15 @@ public class CloudStorage : MonoBehaviour
         client.Logout();
     }
 
+    #endregion
+
+    #region Rename
+    public  async void Renamenode(string filderorfile, string rename)
+    {
+        INode test = GetPaticularFolder(filderorfile);
+        await  client.RenameAsync(test, rename);
+        Debug.Log("Name Changed Successfully");
+    }
     #endregion
 
     #region DeleteFileOrFolder
@@ -250,6 +260,8 @@ public class CloudStorage : MonoBehaviour
 
     INode GetPaticularFolder(string Name) // Get perticular folder
     {
+        client = new MegaApiClient();
+        client.Login(megaUsername, megaPassword);
         IEnumerable<INode> Company = client.GetNodes();
         List<INode> CompanyRef = Company.Where(n => n.Type == NodeType.Directory).ToList();
        
@@ -292,11 +304,10 @@ public class CloudStorage : MonoBehaviour
     }
     #endregion
 
+
     #region Test
     void Test()// Uploading whole folder and subfolder with files
     {
-       // string megaUsername = "YourMegaUsername";
-       // string megaPassword = "YourMegaPassword";
         string localFolderPath = @"C:\Users\SAHIL\Desktop\Test"; // Replace with your local folder path
 
         client = new MegaApiClient();
@@ -322,7 +333,11 @@ public class CloudStorage : MonoBehaviour
         {
             UploadFolder(client, subDir.FullName, megaFolder);
         }
+        
     }
+
     #endregion
+
+    
 
 }
